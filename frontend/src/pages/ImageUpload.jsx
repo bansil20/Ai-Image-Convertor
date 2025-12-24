@@ -1,11 +1,14 @@
 import React, { useRef, useState } from "react";
 import Webcam from "react-webcam";
+import axios from "axios";
 
-const ImageUpload = () => {
+function ImageUpload() {
   const webcamRef = useRef(null);
 
   const [useWebcam, setUseWebcam] = useState(false);
   const [image, setImage] = useState(null);
+  const [resultImage, setResultImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Capture image from webcam
   const captureImage = () => {
@@ -25,6 +28,38 @@ const ImageUpload = () => {
     };
     reader.readAsDataURL(file);
   };
+
+   // Send image to backend
+const generateCartoon = async () => {
+  if (!image) {
+    alert("Please upload or capture an image first");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const res = await axios.post(
+      "http://127.0.0.1:8000/upload",
+      { image },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    console.log("Backend response:", res.data);
+
+    if (res.data.error) {
+      alert("Backend error: " + res.data.error);
+      return;
+    }
+
+    setResultImage(res.data.image);
+  } catch (err) {
+    console.error("Request failed:", err);
+    alert("Request failed, see console");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
@@ -84,15 +119,32 @@ const ImageUpload = () => {
             />
           </label>
 
+            <button
+            onClick={generateCartoon}
+            disabled={loading}
+            className="bg-purple-600 text-white py-2 rounded-lg"
+          >
+            {loading ? "Processing..." : "Generate Cartoon"}
+          </button>
+
         </div>
       )}
 
-        {/*Generate button*/}
-        <button className="mt-4 w-full text-white py-2 rounded-lg">
-            Generate Image
-        </button>
+         {/* Result Image */}
+      {resultImage && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-2 text-center">
+            Result
+          </h3>
+          <img
+            src={resultImage}
+            alt="Result"
+            className="w-full rounded-lg border"
+          />
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default ImageUpload;
